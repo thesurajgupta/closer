@@ -1,0 +1,4 @@
+strands-agents==1.55.1
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.9

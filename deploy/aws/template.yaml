@@ -1,0 +1,238 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  CLOSER — background execution plane. EventBridge schedules the work, SQS makes
+  it durable, DynamoDB holds structured truth, S3 holds documents, and the agent
+  runtime (AgentCore, or the Lambda worker below) drains the queue.
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+  BedrockModelId:
+    Type: String
+    Default: us.anthropic.claude-sonnet-4-5-20250929-v1:0
+  DiscoveryScheduleExpression:
+    Type: String
+    Default: cron(0 7 * * ? *)
+    Description: Daily discovery pass.
+  FollowUpScheduleExpression:
+    Type: String
+    Default: rate(6 hours)
+  DeadlineSweepExpression:
+    Type: String
+    Default: rate(1 hour)
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    Timeout: 300
+    MemorySize: 1024
+    Environment:
+      Variables:
+        CLOSER_MODE: demo
+        CLOSER_MODEL_PROVIDER: bedrock
+        CLOSER_BEDROCK_MODEL_ID: !Ref BedrockModelId
+        CLOSER_TABLE: !Ref LoopTable
+        CLOSER_BUCKET: !Ref DocumentBucket
+        CLOSER_QUEUE_URL: !Ref WorkQueue
+
+Resources:
+
+  # --- structured truth ---------------------------------------------------
+  # Single-table design mirroring the local SQLite store one-for-one:
+  #   PK = SESSION#<session>            SK = LOOP#<loop_id>
+  #   PK = SESSION#<session>            SK = PLAN#<plan_id>
+  #   PK = SESSION#<session>            SK = RUN#<run_id>
+  #   PK = IDEM#<idempotency_key>       SK = CLAIM        (the crash barrier)
+  LoopTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub closer-${Environment}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: pk, AttributeType: S}
+        - {AttributeName: sk, AttributeType: S}
+        - {AttributeName: gsi1pk, AttributeType: S}
+        - {AttributeName: gsi1sk, AttributeType: S}
+      KeySchema:
+        - {AttributeName: pk, KeyType: HASH}
+        - {AttributeName: sk, KeyType: RANGE}
+      GlobalSecondaryIndexes:
+        # "which loops are due for a check" without scanning the table
+        - IndexName: due
+          KeySchema:
+            - {AttributeName: gsi1pk, KeyType: HASH}
+            - {AttributeName: gsi1sk, KeyType: RANGE}
+          Projection: {ProjectionType: ALL}
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+
+  DocumentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub closer-documents-${Environment}-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      VersioningConfiguration: {Status: Enabled}
+
+  # --- durable work queue -------------------------------------------------
+  WorkQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub closer-work-${Environment}
+      VisibilityTimeout: 360        # > worker timeout, so a slow run is not redelivered
+      MessageRetentionPeriod: 345600
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt DeadLetterQueue.Arn
+        maxReceiveCount: 3          # matches the local EventQueue
+
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub closer-work-dlq-${Environment}
+      MessageRetentionPeriod: 1209600
+
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref WorkQueue]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: events.amazonaws.com}
+            Action: sqs:SendMessage
+            Resource: !GetAtt WorkQueue.Arn
+
+  # --- schedules ----------------------------------------------------------
+  DiscoveryRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub closer-discovery-${Environment}
+      Description: Look for new open loops once a day.
+      ScheduleExpression: !Ref DiscoveryScheduleExpression
+      Targets:
+        - Id: work-queue
+          Arn: !GetAtt WorkQueue.Arn
+          Input: '{"detail-type": "closer.discovery"}'
+
+  FollowUpRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub closer-followup-${Environment}
+      Description: Act on loops whose next check is due.
+      ScheduleExpression: !Ref FollowUpScheduleExpression
+      Targets:
+        - Id: work-queue
+          Arn: !GetAtt WorkQueue.Arn
+          Input: '{"detail-type": "closer.follow_up"}'
+
+  DeadlineSweepRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub closer-deadline-sweep-${Environment}
+      Description: Raise priority as deadlines approach; expire what has passed.
+      ScheduleExpression: !Ref DeadlineSweepExpression
+      Targets:
+        - Id: work-queue
+          Arn: !GetAtt WorkQueue.Arn
+          Input: '{"detail-type": "closer.deadline_sweep"}'
+
+  # --- worker -------------------------------------------------------------
+  # Drains the queue by calling closer.background.worker.handle_event. Use this
+  # or AgentCore Runtime — both call the identical handler.
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub closer-worker-${Environment}
+      CodeUri: ../../backend/
+      Handler: closer.background.lambda_handler.handler
+      ReservedConcurrentExecutions: 1   # one pass at a time; the run engine is not reentrant
+      Events:
+        Work:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt WorkQueue.Arn
+            BatchSize: 1
+            FunctionResponseTypes: [ReportBatchItemFailures]
+      Policies:
+        - DynamoDBCrudPolicy: {TableName: !Ref LoopTable}
+        - S3CrudPolicy: {BucketName: !Ref DocumentBucket}
+        - SQSPollerPolicy: {QueueName: !GetAtt WorkQueue.QueueName}
+        - Statement:
+            - Effect: Allow
+              Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+              Resource: !Sub arn:aws:bedrock:*::foundation-model/*
+            - Effect: Allow
+              Action: secretsmanager:GetSecretValue
+              Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:closer/connectors/*
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub closer-api-${Environment}
+      CodeUri: ../../backend/
+      Handler: closer.api.lambda_handler.handler
+      Events:
+        Api:
+          Type: HttpApi
+          Properties: {Path: /{proxy+}, Method: ANY}
+      Policies:
+        - DynamoDBCrudPolicy: {TableName: !Ref LoopTable}
+        - S3ReadPolicy: {BucketName: !Ref DocumentBucket}
+        - Statement:
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: !GetAtt WorkQueue.Arn
+
+  # --- observability ------------------------------------------------------
+  StuckLoopAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub closer-dlq-not-empty-${Environment}
+      AlarmDescription: Work has failed three times and been parked. A human should look.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - {Name: QueueName, Value: !GetAtt DeadLetterQueue.QueueName}
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+
+  FailedActionAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub closer-action-failures-${Environment}
+      AlarmDescription: CLOSER could not complete actions it was authorised to take.
+      Namespace: CLOSER
+      MetricName: ActionFailures
+      Statistic: Sum
+      Period: 3600
+      EvaluationPeriods: 1
+      Threshold: 3
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+Outputs:
+  ApiUrl:
+    Value: !Sub https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com
+  QueueUrl:
+    Value: !Ref WorkQueue
+  TableName:
+    Value: !Ref LoopTable
+  BucketName:
+    Value: !Ref DocumentBucket

@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 900" width="1240" height="900" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#7d786d"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2f5d50"/>
+    </marker>
+    <marker id="arrowAmber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9a6115"/>
+    </marker>
+    <style>
+      .band     { fill: #f4f2ed; stroke: #e7e2d8; }
+      .bandlbl  { font-size: 11px; letter-spacing: .18em; fill: #7d786d; font-weight: 700; }
+      .box      { fill: #ffffff; stroke: #d8d2c5; stroke-width: 1.2; }
+      .box-key  { fill: #ffffff; stroke: #2f5d50; stroke-width: 2; }
+      .box-ask  { fill: #f8efe0; stroke: #9a6115; stroke-width: 1.6; }
+      .box-data { fill: #ffffff; stroke: #c9c3b6; stroke-dasharray: 4 3; }
+      .t        { font-size: 13.5px; fill: #17150f; }
+      .t-b      { font-size: 13.5px; fill: #17150f; font-weight: 600; }
+      .s        { font-size: 11px; fill: #7d786d; }
+      .edge     { stroke: #7d786d; stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+      .edge-g   { stroke: #2f5d50; stroke-width: 1.8; fill: none; marker-end: url(#arrowGreen); }
+      .edge-a   { stroke: #9a6115; stroke-width: 1.8; fill: none; marker-end: url(#arrowAmber); }
+      .edge-d   { stroke: #c9c3b6; stroke-width: 1.1; fill: none; stroke-dasharray: 4 3; marker-end: url(#arrow); }
+      .title    { font-size: 22px; fill: #17150f; font-family: 'Iowan Old Style', Palatino, Georgia, serif; letter-spacing: .12em; }
+      .sub      { font-size: 12.5px; fill: #7d786d; }
+    </style>
+  </defs>
+
+  <rect width="1240" height="900" fill="#faf9f6"/>
+
+  <text x="40" y="46" class="title">CLOSER</text>
+  <text x="40" y="68" class="sub">The model chooses tools. Deterministic code decides what may run. Those are different things, and the diagram shows where they separate.</text>
+
+  <!-- ============ triggers ============ -->
+  <rect x="40" y="96" width="230" height="66" rx="12" class="box"/>
+  <text x="58" y="122" class="t-b">A person</text>
+  <text x="58" y="141" class="s">“Let CLOSER work”, or a decision</text>
+
+  <rect x="292" y="96" width="250" height="66" rx="12" class="box-key"/>
+  <text x="310" y="122" class="t-b">Amazon EventBridge</text>
+  <text x="310" y="141" class="s">discovery · follow-up · deadline sweep</text>
+
+  <rect x="564" y="96" width="270" height="66" rx="12" class="box"/>
+  <text x="582" y="122" class="t-b">The user's own material</text>
+  <text x="582" y="141" class="s">email · documents · calendar · charges</text>
+
+  <rect x="856" y="96" width="344" height="66" rx="12" class="box-data"/>
+  <text x="874" y="122" class="t-b">Untrusted by default</text>
+  <text x="874" y="141" class="s">wrapped, scanned for instructions, quarantined if hostile</text>
+
+  <!-- ============ front door ============ -->
+  <rect x="40" y="196" width="230" height="58" rx="12" class="box"/>
+  <text x="58" y="221" class="t-b">CLOSER web app</text>
+  <text x="58" y="239" class="s">outcomes and decisions, not chat</text>
+
+  <rect x="292" y="196" width="250" height="58" rx="12" class="box-key"/>
+  <text x="310" y="221" class="t-b">Amazon SQS  +  DLQ</text>
+  <text x="310" y="239" class="s">durable work · at-least-once · redrive</text>
+
+  <path d="M155 162 L155 196" class="edge"/>
+  <path d="M417 162 L417 196" class="edge"/>
+  <path d="M270 225 L292 225" class="edge"/>
+
+  <!-- ============ REASON ============ -->
+  <rect x="40" y="288" width="794" height="188" rx="16" class="band"/>
+  <text x="60" y="312" class="bandlbl">REASON — the model</text>
+
+  <rect x="60" y="326" width="222" height="62" rx="11" class="box-key"/>
+  <text x="78" y="351" class="t-b">Strands supervisor</text>
+  <text x="78" y="369" class="s">owns one loop; delegates</text>
+
+  <rect x="306" y="326" width="166" height="62" rx="11" class="box"/>
+  <text x="324" y="351" class="t-b">Intake</text>
+  <text x="324" y="369" class="s">classify · dedupe · open</text>
+
+  <rect x="496" y="326" width="166" height="62" rx="11" class="box"/>
+  <text x="514" y="351" class="t-b">Evidence</text>
+  <text x="514" y="369" class="s">sourced facts · gaps</text>
+
+  <rect x="686" y="326" width="128" height="62" rx="11" class="box"/>
+  <text x="704" y="351" class="t-b">Resolution</text>
+  <text x="704" y="369" class="s">one action</text>
+
+  <rect x="60" y="402" width="222" height="56" rx="11" class="box"/>
+  <text x="78" y="426" class="t-b">Communication</text>
+  <text x="78" y="444" class="s">drafts, sourced facts only</text>
+
+  <rect x="306" y="402" width="508" height="56" rx="11" class="box"/>
+  <text x="324" y="426" class="t-b">29 typed tools</text>
+  <text x="324" y="444" class="s">search_documents · check_warranty_status · compare_billing_periods · recommend_action · …</text>
+
+  <path d="M282 357 L306 357" class="edge"/>
+  <path d="M472 357 L496 357" class="edge"/>
+  <path d="M662 357 L686 357" class="edge"/>
+  <path d="M171 388 L171 402" class="edge"/>
+  <path d="M417 254 L417 288" class="edge"/>
+
+  <!-- ============ PLAN ============ -->
+  <rect x="40" y="504" width="794" height="74" rx="16" class="band"/>
+  <text x="60" y="528" class="bandlbl">PLAN — a proposal, carrying no authority</text>
+  <rect x="60" y="534" width="754" height="34" rx="9" class="box"/>
+  <text x="78" y="556" class="t">action type from a fixed allowlist · target · payload · cited evidence · reversibility · amount</text>
+  <path d="M437 476 L437 504" class="edge"/>
+
+  <!-- ============ AUTHORIZE ============ -->
+  <rect x="40" y="606" width="794" height="118" rx="16" class="band" style="stroke:#9a6115; stroke-width:1.6"/>
+  <text x="60" y="630" class="bandlbl" style="fill:#9a6115">AUTHORIZE — deterministic code, no model in the call path</text>
+
+  <rect x="60" y="640" width="356" height="66" rx="11" class="box-ask"/>
+  <text x="78" y="664" class="t-b">Policy engine</text>
+  <text x="78" y="682" class="s">ceiling · risk class · evidence · confidence · your settings</text>
+
+  <rect x="440" y="640" width="176" height="66" rx="11" class="box"/>
+  <text x="458" y="664" class="t-b">Run it</text>
+  <text x="458" y="682" class="s">read-only · low risk · reversible</text>
+
+  <rect x="640" y="640" width="174" height="66" rx="11" class="box-ask"/>
+  <text x="658" y="664" class="t-b">Ask the person</text>
+  <text x="658" y="682" class="s">external · financial · sensitive</text>
+
+  <path d="M437 578 L437 606" class="edge"/>
+  <path d="M416 673 L440 673" class="edge-g"/>
+  <path d="M616 673 L640 673" class="edge-a"/>
+
+  <!-- ============ EXECUTE + VERIFY ============ -->
+  <rect x="40" y="752" width="380" height="76" rx="14" class="box-key"/>
+  <text x="60" y="778" class="t-b">Execute</text>
+  <text x="60" y="797" class="s">idempotency claimed first · bounded retries</text>
+  <text x="60" y="815" class="s">connectors: email · calendar · documents · billing · warranty</text>
+
+  <rect x="444" y="752" width="390" height="76" rx="14" class="box-key"/>
+  <text x="464" y="778" class="t-b">Verify</text>
+  <text x="464" y="797" class="s">check the provider's own state, not the tool's return value</text>
+  <text x="464" y="815" class="s">confirmed → close · partial → hold · failed → surface it</text>
+
+  <path d="M528 706 L528 752" class="edge-g"/>
+  <path d="M727 706 L727 740 L300 740 L300 752" class="edge-a"/>
+  <text x="330" y="736" class="s" style="fill:#9a6115">only the exact plan the person approved</text>
+  <path d="M420 790 L444 790" class="edge-g"/>
+
+  <!-- ============ silence engine ============ -->
+  <rect x="856" y="752" width="344" height="76" rx="14" class="box-ask"/>
+  <text x="876" y="778" class="t-b">Silence engine</text>
+  <text x="876" y="797" class="s">urgency · risk · confidence · deadline · who is waiting</text>
+  <text x="876" y="815" class="s">default is to say nothing</text>
+  <path d="M834 790 L856 790" class="edge"/>
+
+  <!-- ============ data plane ============ -->
+  <rect x="856" y="288" width="344" height="436" rx="16" class="band"/>
+  <text x="876" y="312" class="bandlbl">STATE — structured truth, never free text</text>
+
+  <rect x="876" y="326" width="304" height="70" rx="11" class="box-key"/>
+  <text x="894" y="350" class="t-b">Amazon DynamoDB</text>
+  <text x="894" y="368" class="s">loops · plans · approvals · audit events</text>
+  <text x="894" y="385" class="s">idempotency claims (the crash barrier)</text>
+
+  <rect x="876" y="410" width="304" height="56" rx="11" class="box"/>
+  <text x="894" y="434" class="t-b">Amazon S3</text>
+  <text x="894" y="452" class="s">the user's documents</text>
+
+  <rect x="876" y="480" width="304" height="70" rx="11" class="box"/>
+  <text x="894" y="504" class="t-b">AgentCore Memory</text>
+  <text x="894" y="522" class="s">preferences only — how you want to be</text>
+  <text x="894" y="539" class="s">interrupted. Never policy. Never truth.</text>
+
+  <rect x="876" y="564" width="304" height="56" rx="11" class="box"/>
+  <text x="894" y="588" class="t-b">AWS Secrets Manager</text>
+  <text x="894" y="606" class="s">connector credentials, per session</text>
+
+  <rect x="876" y="634" width="304" height="70" rx="11" class="box"/>
+  <text x="894" y="658" class="t-b">Amazon CloudWatch</text>
+  <text x="894" y="676" class="s">tool latency · failures · verifications</text>
+  <text x="894" y="693" class="s">interruptions — the metric that matters</text>
+
+  <path d="M834 361 L876 361" class="edge-d"/>
+  <path d="M834 438 L876 438" class="edge-d"/>
+  <path d="M834 515 L876 515" class="edge-d"/>
+  <path d="M834 669 L876 669" class="edge-d"/>
+
+  <!-- ============ legend ============ -->
+  <rect x="40" y="852" width="1160" height="34" rx="10" fill="#ffffff" stroke="#e7e2d8"/>
+  <circle cx="62" cy="869" r="5" fill="#2f5d50"/>
+  <text x="76" y="874" class="s">runs on its own</text>
+  <circle cx="212" cy="869" r="5" fill="#9a6115"/>
+  <text x="226" y="874" class="s">needs a person</text>
+  <text x="376" y="874" class="s">A model can propose anything. It can execute nothing. Between the two sits code with no model in it — and after every side effect, a check that it actually happened.</text>
+</svg>
