@@ -12,15 +12,22 @@ PROJECT_ROOT = BACKEND_ROOT.parent
 DATA_DIR = Path(__file__).resolve().parent / "demo" / "data"
 
 
+def _env(name: str, default: str) -> str:
+    """Read an env var, treating a blank value as unset. Hosting dashboards
+    (Vercel's .env.example import, for one) create keys with empty values."""
+    raw = os.getenv(name)
+    return raw.strip() if raw and raw.strip() else default
+
+
 def _bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
-    if raw is None:
+    if raw is None or not raw.strip():
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _db_path() -> str:
-    configured = os.getenv("CLOSER_DB", str(PROJECT_ROOT / "closer.db"))
+    configured = _env("CLOSER_DB", str(PROJECT_ROOT / "closer.db"))
     # Serverless platforms (Vercel, Lambda) mount the code read-only; /tmp is the
     # only writable path, so any other location is redirected there.
     serverless = os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
@@ -33,35 +40,35 @@ def _db_path() -> str:
 class Settings:
     # DEMO uses the synthetic household dataset and local connectors.
     # LIVE swaps connectors for real adapters behind credentials.
-    mode: str = field(default_factory=lambda: os.getenv("CLOSER_MODE", "demo").lower())
+    mode: str = field(default_factory=lambda: _env("CLOSER_MODE", "demo").lower())
 
     # Deterministic wall clock for a reproducible demo.
-    demo_now: str = field(default_factory=lambda: os.getenv("CLOSER_DEMO_NOW", "2026-09-10T09:00:00"))
+    demo_now: str = field(default_factory=lambda: _env("CLOSER_DEMO_NOW", "2026-09-10T09:00:00"))
 
     db_path: str = field(default_factory=lambda: _db_path())
 
     # Model provider: "auto" | "deterministic" | "bedrock" | "anthropic"
-    model_provider: str = field(default_factory=lambda: os.getenv("CLOSER_MODEL_PROVIDER", "auto").lower())
+    model_provider: str = field(default_factory=lambda: _env("CLOSER_MODEL_PROVIDER", "auto").lower())
     bedrock_model_id: str = field(
-        default_factory=lambda: os.getenv("CLOSER_BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
+        default_factory=lambda: _env("CLOSER_BEDROCK_MODEL_ID", "us.anthropic.claude-sonnet-4-5-20250929-v1:0")
     )
-    aws_region: str = field(default_factory=lambda: os.getenv("AWS_REGION", "us-west-2"))
+    aws_region: str = field(default_factory=lambda: _env("AWS_REGION", "us-west-2"))
     anthropic_model_id: str = field(
-        default_factory=lambda: os.getenv("CLOSER_ANTHROPIC_MODEL_ID", "claude-sonnet-4-5-20250929")
+        default_factory=lambda: _env("CLOSER_ANTHROPIC_MODEL_ID", "claude-sonnet-4-5-20250929")
     )
 
     # Safety rails that a prompt can never widen.
-    max_agent_iterations: int = field(default_factory=lambda: int(os.getenv("CLOSER_MAX_ITERATIONS", "14")))
-    max_action_amount: float = field(default_factory=lambda: float(os.getenv("CLOSER_MAX_ACTION_AMOUNT", "25000")))
-    tool_timeout_seconds: int = field(default_factory=lambda: int(os.getenv("CLOSER_TOOL_TIMEOUT", "20")))
-    max_retries: int = field(default_factory=lambda: int(os.getenv("CLOSER_MAX_RETRIES", "3")))
+    max_agent_iterations: int = field(default_factory=lambda: int(_env("CLOSER_MAX_ITERATIONS", "14")))
+    max_action_amount: float = field(default_factory=lambda: float(_env("CLOSER_MAX_ACTION_AMOUNT", "25000")))
+    tool_timeout_seconds: int = field(default_factory=lambda: int(_env("CLOSER_TOOL_TIMEOUT", "20")))
+    max_retries: int = field(default_factory=lambda: int(_env("CLOSER_MAX_RETRIES", "3")))
 
     # Background execution
     scheduler_enabled: bool = field(default_factory=lambda: _bool("CLOSER_SCHEDULER", False))
-    discovery_cron_minutes: int = field(default_factory=lambda: int(os.getenv("CLOSER_DISCOVERY_MINUTES", "1440")))
-    follow_up_cron_minutes: int = field(default_factory=lambda: int(os.getenv("CLOSER_FOLLOW_UP_MINUTES", "360")))
+    discovery_cron_minutes: int = field(default_factory=lambda: int(_env("CLOSER_DISCOVERY_MINUTES", "1440")))
+    follow_up_cron_minutes: int = field(default_factory=lambda: int(_env("CLOSER_FOLLOW_UP_MINUTES", "360")))
 
-    seed: int = field(default_factory=lambda: int(os.getenv("CLOSER_SEED", "42")))
+    seed: int = field(default_factory=lambda: int(_env("CLOSER_SEED", "42")))
 
     @property
     def is_demo(self) -> bool:
