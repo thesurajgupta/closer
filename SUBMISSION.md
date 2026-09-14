@@ -84,6 +84,9 @@ See `deploy/`.
 
 ## How to run it (no keys needed)
 
+Live: **https://closer-beige-ten.vercel.app**
+
+
 ```bash
 ./run.sh                     # Python 3.11+, opens http://127.0.0.1:8000
 # or

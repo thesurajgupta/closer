@@ -10,6 +10,8 @@ and only asks you when your judgement is genuinely needed.
 
 `Agents for Humans Hackathon` · `Everyday Agents` · MIT licensed
 
+**Live demo:** [closer-beige-ten.vercel.app](https://closer-beige-ten.vercel.app) — synthetic data, no sign-in. Press **Let CLOSER work**.
+
 </div>
 
 ---
