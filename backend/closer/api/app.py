@@ -7,6 +7,7 @@ machine and audit trail cannot be sidestepped from the browser.
 
 from __future__ import annotations
 
+import os
 import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -226,7 +227,10 @@ def start_run() -> RunResponse:
     thread = threading.Thread(target=_work, daemon=True)
     _active_run.update({"run_id": None, "state": "running", "error": None})
     thread.start()
-    thread.join(timeout=0.35)  # most demo runs finish inside this window
+    # A serverless function can be frozen as soon as it responds, so there the
+    # run finishes before returning. Locally the UI polls a live run instead.
+    serverless = os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+    thread.join(timeout=None if serverless else 0.35)
     return RunResponse(run_id=result.get("run_id") or _active_run.get("run_id") or "",
                        state=_active_run["state"])
 

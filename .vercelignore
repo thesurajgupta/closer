@@ -1,0 +1,11 @@
+.venv
+**/node_modules
+**/__pycache__
+*.db
+*.db-*
+.pytest_cache
+**/*.egg-info
+backend/tests
+deploy
+docs
+frontend/src

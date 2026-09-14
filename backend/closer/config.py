@@ -19,6 +19,16 @@ def _bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _db_path() -> str:
+    configured = os.getenv("CLOSER_DB", str(PROJECT_ROOT / "closer.db"))
+    # Serverless platforms (Vercel, Lambda) mount the code read-only; /tmp is the
+    # only writable path, so any other location is redirected there.
+    serverless = os.getenv("VERCEL") or os.getenv("AWS_LAMBDA_FUNCTION_NAME")
+    if serverless and not configured.startswith("/tmp"):
+        return "/tmp/closer.db"
+    return configured
+
+
 @dataclass
 class Settings:
     # DEMO uses the synthetic household dataset and local connectors.
@@ -28,7 +38,7 @@ class Settings:
     # Deterministic wall clock for a reproducible demo.
     demo_now: str = field(default_factory=lambda: os.getenv("CLOSER_DEMO_NOW", "2026-09-10T09:00:00"))
 
-    db_path: str = field(default_factory=lambda: os.getenv("CLOSER_DB", str(PROJECT_ROOT / "closer.db")))
+    db_path: str = field(default_factory=lambda: _db_path())
 
     # Model provider: "auto" | "deterministic" | "bedrock" | "anthropic"
     model_provider: str = field(default_factory=lambda: os.getenv("CLOSER_MODEL_PROVIDER", "auto").lower())
